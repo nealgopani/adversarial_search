@@ -12,9 +12,9 @@ from minimax import minimax
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove this line if you are not running windows
 
-#set to load from file
 
 d = 6 #set this to a multiple of 3 to create a d x d board
+depth = 2
 
 def is_valid_position(pos):
 	'''
@@ -43,8 +43,6 @@ class Pit(Agent):
 	def __init__(self, name, model):
 		super().__init__(name, model)
 		self.name = name
-
-		#cost calculated based on position of agent on the grid
 		self.color = 'black'
 
 
@@ -191,9 +189,9 @@ class Board(Model):
 		here we will call minimax from minimax.py. This will return the agent piece that will move along with the coordinate
 		it will move to
 		'''
-		_, _, piece, pos = minimax(self, 2, True)
+		_, _, piece, pos = minimax(self, depth, True)
 
-		print('piece and pos is ', piece, pos)
+		print('piece and pos is ', piece.name, pos)
 		return piece, pos
 
 	def winner(self):
@@ -260,6 +258,8 @@ class Board(Model):
 		self.schedule.step()
 		self.collision_check(adversary_piece)
 		self.schedule.remove(adversary_piece)
+
+
 
 		agent_piece, agent_pos = self.get_agent_piece_and_move()
 		agent_piece.move(pos = agent_pos)
