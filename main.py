@@ -8,6 +8,7 @@ import random
 import math
 from collections import OrderedDict 
 import asyncio
+from minimax import minimax
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove this line if you are not running windows
 
@@ -75,7 +76,7 @@ class Piece(Agent):
 		return neighbors_without_own
 
 
-	def move(self):
+	def move(self, pos = None):
 		if self.player == 'adversary':
 			'''
 			what we will do is get the neighborhood of the piece
@@ -98,7 +99,7 @@ class Piece(Agent):
 			print('Done')
 		else:
 			# code for moving the agent 
-			pass
+			self.model.grid.move_agent(self, pos)
 
 		
 
@@ -190,14 +191,18 @@ class Board(Model):
 		here we will call minimax from minimax.py. This will return the agent piece that will move along with the coordinate
 		it will move to
 		'''
-		pass
+		_, _, piece, pos = minimax(self, 2, True)
 
-	def win(self):
+		print('piece and pos is ', piece, pos)
+		return piece, pos
+
+	def winner(self):
 		'''
 		here we will implement the winning condition
 		we will return the value True and the player who won. we want the game to stop
 		when win() == True.. and we will implement this in the step function
 		'''
+		return self.adversary_pieces == [] or self.agent_pieces == []
 
 	def collision_check(self, piece):
 		x, y = piece.pos 
@@ -227,7 +232,7 @@ class Board(Model):
 					agent_to_remove = agent if agent.name == 'hero' else piece 
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
-				else:
+				elif piece.name and agent.name in ['mage', 'wumpus']:
 					agent_to_remove = agent if agent.name == 'mage' else piece 
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
@@ -255,6 +260,11 @@ class Board(Model):
 		self.schedule.step()
 		self.collision_check(adversary_piece)
 		self.schedule.remove(adversary_piece)
+
+		agent_piece, agent_pos = self.get_agent_piece_and_move()
+		agent_piece.move(pos = agent_pos)
+		self.collision_check(agent_piece)
+
 
 
 if __name__ == '__main__':
