@@ -15,6 +15,56 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 d = 12
 
+def is_valid_position(pos):
+	agents = []
+	coord = pos.split()
+	if not coord or len(coord) != 2:
+		return False
+
+	try:
+		x, y = int(coord[0]), int(coord[1])
+	except:
+
+		return False
+
+	if x not in range(d) or y not in range(d):
+
+		return False
+
+	return True
+
+	# while pos.split() == None or len(pos.split()) != 2 or agents == [] or agents[0].name == 'pit' or agents[0].player == 'agent':
+
+
+	# 	coord = pos.split()
+
+	# 	if len(pos.split()) != 2:
+	# 		print('Entered too little or too many arguments')
+	# 		continue
+	# 	try:
+	# 		x, y = int(coord[0]), int(coord[1])
+	# 	except:
+	# 		agents = []
+	# 		continue
+
+	# 	if x not in range(d) or y not in range(d):
+	# 		print('out of bounds')
+	# 		agents = []
+	# 		continue
+	# 	agents = list(self.grid[x][y])
+		# if agents != [] and agents[0].name != 'pit' and agents[0].player == 'adversary':
+		# 	piece = agents[0]
+		# 	return piece
+
+		# else:
+		# 	if agents != [] and agents[0].player == 'agent':
+		# 		print('You cannot move agent\'s pieces')
+		# 	else:
+		# 		print('You have selected either an empty grid or pit')
+		# 	continue
+
+
+
 class Pit(Agent):
 	def __init__(self, name, model):
 		super().__init__(name, model)
@@ -55,6 +105,20 @@ class Piece(Agent):
 	def step(self):
 		self.move()
 
+	def get_valid_neighbors(self):
+		#valid neighbors are anything in radius one that does not include one of your own pieces
+		neighbors = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = False, radius = 1)
+		neighbors_without_own = neighbors[:]
+
+
+		for n in neighbors:
+			x, y = n 
+			agents = list(self.model.grid[x][y])
+			for a in agents:
+				if a.name != 'pit' and a.player == self.player:
+					neighbors_without_own.remove(n)
+		return neighbors_without_own
+
 
 	def move(self):
 		if self.player == 'adversary':
@@ -62,13 +126,16 @@ class Piece(Agent):
 			what we will do is get the neighborhood of the piece
 
 			'''
-			neighbors = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = False, radius = 1)
+			neighbors = self.get_valid_neighbors()
 			print('possible positions are: ')
 			for n in neighbors:
 				print(n)
 
-			print(f'Move {self.name} to: ', end='')
-			pos = input()
+			pos = ''
+			while not is_valid_position(pos) or tuple([int(i) for i in pos.split()]) not in neighbors:
+				print(f'Move {self.name} to: ', end='')
+				pos = input()
+			
 			pos = pos.split()
 
 			x, y = int(pos[0]), int(pos[1])
@@ -125,38 +192,36 @@ class GridModel(Model):
 
 
 	def get_position(self):
-		agents = []
 		pos = ''
-		while pos.split() == None or len(pos.split()) != 2 or agents == [] or agents[0].name == 'pit' or agents[0].player == 'agent':
+		agents = []
 
+		while not is_valid_position(pos) or agents == [] or agents[0].name == 'pit' or agents[0].player == 'agent' :
 			print("Enter position of piece you want to move (sep by spaces): ", end ='')
 			pos = input()
-			coord = pos.split()
 
-			if len(pos.split()) != 2:
-				print('Entered too little or too many arguments')
-				continue
-			try:
-				x, y = int(coord[0]), int(coord[1])
-			except:
-				agents = []
+			if not is_valid_position(pos):
+				print('invalid argument')
 				continue
 
-			if x not in range(d) or y not in range(d):
-				print('out of bounds')
-				agents = []
-				continue
+			x, y = int(pos.split()[0]), int(pos.split()[1])
+
 			agents = list(self.grid[x][y])
-			if agents != [] and agents[0].name != 'pit' and agents[0].player == 'adversary':
-				piece = agents[0]
-				return piece
 
-			else:
-				if agents != [] and agents[0].player == 'agent':
-					print('You cannot move agent\'s pieces')
+			if agents != []:
+				if agents[0].name == 'pit':
+					print('cannot select a pit')
+					continue
+
+				if agents[0].player == 'adversary':
+					piece = agents[0]
+					return piece
+
 				else:
-					print('You have selected either an empty grid or pit')
-				continue
+					print('You cannot move agent\'s pieces')
+					continue
+			else:
+				print('cannot select empty square')
+
 
 	
 	def step(self):
