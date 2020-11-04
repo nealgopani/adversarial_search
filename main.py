@@ -9,7 +9,7 @@ import math
 from collections import OrderedDict 
 import asyncio
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove this line if you are not running windows
 
 #set to load from file
 
@@ -146,6 +146,9 @@ class Board(Model):
 			self.grid.place_agent(piece_adv, (j, 0))
 			self.grid.place_agent(piece_agent, (j, d-1))
 
+			self.adversary_pieces.append(piece_adv)
+			self.agent_pieces.append(piece_agent)
+
 
 	def get_adversary_piece(self):
 		'''
@@ -206,22 +209,41 @@ class Board(Model):
 		for agent in agents:
 			if agent.name == 'pit':
 				self.grid.remove_agent(piece)
+				self._remove_piece_from_list(piece)
 			elif agent.player != piece.player:
 				if agent.name == piece.name:
 					self.grid.remove_agent(piece)
 					self.grid.remove_agent(agent)
+
+					self._remove_piece_from_list(piece)
+					self._remove_piece_from_list(agent)
+
 				elif agent.name and piece.name in ['hero', 'wumpus']:
 					agent_to_remove = agent if agent.name == 'wumpus' else piece 
 					self.grid.remove_agent(agent_to_remove)
+					self._remove_piece_from_list(agent_to_remove)
+
 				elif piece.name and agent.name in ['mage', 'hero']:
 					agent_to_remove = agent if agent.name == 'hero' else piece 
 					self.grid.remove_agent(agent_to_remove)
+					self._remove_piece_from_list(agent_to_remove)
 				else:
 					agent_to_remove = agent if agent.name == 'mage' else piece 
 					self.grid.remove_agent(agent_to_remove)
+					self._remove_piece_from_list(agent_to_remove)
 
 
-	
+	def _remove_piece_from_list(self, piece):
+		if piece.player == 'agent':
+			self.agent_pieces.remove(piece)
+		else:
+			self.adversary_pieces.remove(piece)
+
+
+	def evaluate(self):
+		#returns the score for the whole board
+		return len(self.agent_pieces) - len(self.adversary_pieces)
+
 	def step(self):
 		'''
 		Each time step is called, player enters move and their piece moves. Agent also moves its piece that was returned from
