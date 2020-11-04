@@ -13,9 +13,12 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 #set to load from file
 
-d = 12
+d = 6 #set this to a multiple of 3 to create a d x d board
 
 def is_valid_position(pos):
+	'''
+	Makes sure we don't enter letters, an incorrect number of inputs, or an out of bounds position
+	'''
 	agents = []
 	coord = pos.split()
 	if not coord or len(coord) != 2:
@@ -33,36 +36,6 @@ def is_valid_position(pos):
 
 	return True
 
-	# while pos.split() == None or len(pos.split()) != 2 or agents == [] or agents[0].name == 'pit' or agents[0].player == 'agent':
-
-
-	# 	coord = pos.split()
-
-	# 	if len(pos.split()) != 2:
-	# 		print('Entered too little or too many arguments')
-	# 		continue
-	# 	try:
-	# 		x, y = int(coord[0]), int(coord[1])
-	# 	except:
-	# 		agents = []
-	# 		continue
-
-	# 	if x not in range(d) or y not in range(d):
-	# 		print('out of bounds')
-	# 		agents = []
-	# 		continue
-	# 	agents = list(self.grid[x][y])
-		# if agents != [] and agents[0].name != 'pit' and agents[0].player == 'adversary':
-		# 	piece = agents[0]
-		# 	return piece
-
-		# else:
-		# 	if agents != [] and agents[0].player == 'agent':
-		# 		print('You cannot move agent\'s pieces')
-		# 	else:
-		# 		print('You have selected either an empty grid or pit')
-		# 	continue
-
 
 
 class Pit(Agent):
@@ -72,12 +45,6 @@ class Pit(Agent):
 
 		#cost calculated based on position of agent on the grid
 		self.color = 'black'
-
-	def is_diagnal(self, pos1, pos2):
-		directions = [(1,1), (1,-1), (-1, 1), (-1, -1)]
-		for d in directions:
-			if pos2 == tuple(map(sum,zip(pos1,d))):
-				return True
 
 
 class Piece(Agent):
@@ -89,23 +56,11 @@ class Piece(Agent):
 		self.img = self.piece_to_image[name]
 
 
-	def is_diagnal(self, pos1, pos2):
-		directions = [(1,1), (1,-1), (-1, 1), (-1, -1)]
-		for d in directions:
-			if pos2 == tuple(map(sum,zip(pos1,d))):
-				return True
-
-	def _calculate_distance(self, pos1, pos2):
-		x1, y1 = pos1 
-		x2, y2 = pos2 
-		dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-		return dist 
-
 
 	def step(self):
 		self.move()
 
-	def get_valid_neighbors(self):
+	def get_valid_positions(self):
 		#valid neighbors are anything in radius one that does not include one of your own pieces
 		neighbors = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = False, radius = 1)
 		neighbors_without_own = neighbors[:]
@@ -126,7 +81,7 @@ class Piece(Agent):
 			what we will do is get the neighborhood of the piece
 
 			'''
-			neighbors = self.get_valid_neighbors()
+			neighbors = self.get_valid_positions()
 			print('possible positions are: ')
 			for n in neighbors:
 				print(n)
@@ -141,30 +96,31 @@ class Piece(Agent):
 			x, y = int(pos[0]), int(pos[1])
 			self.model.grid.move_agent(self, (x, y))
 			print('Done')
+		else:
+			# code for moving the agent 
+			pass
 
 		
 
 
-class GridModel(Model):
+class Board(Model):
 	def __init__(self, width, height):
 		self.running = True
 		self.grid = MultiGrid(width, height, False) #true for toroidal grid
 		self.schedule = BaseScheduler(self)
-	# Create agents
+
+
+		self.adversary_pieces = []
+		self.agent_pieces = []
 
 		self.initialize_grid()
-		self.start = (1,1)
-
-
-	
-	def _calculate_distance(self, pos1, pos2):
-		x1, y1 = pos1 
-		x2, y2 = pos2 
-		dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-		return dist 
 
 	
 	def initialize_grid(self):
+		'''
+		Here we initialize the d by d board with pits and pieces
+		'''
+
 		#initialize the pits
 		num_pits = (d//3) - 1
 		for j in range(1, d - 1):
@@ -191,7 +147,11 @@ class GridModel(Model):
 			self.grid.place_agent(piece_agent, (j, d-1))
 
 
-	def get_position(self):
+	def get_adversary_piece(self):
+		'''
+		Here is where player enters coordinates of piece they want to move. Checks for invalid inputs and protects
+		against them
+		'''
 		pos = ''
 		agents = []
 
@@ -222,17 +182,61 @@ class GridModel(Model):
 			else:
 				print('cannot select empty square')
 
+	def get_agent_piece_and_move(self):
+		'''
+		here we will call minimax from minimax.py. This will return the agent piece that will move along with the coordinate
+		it will move to
+		'''
+		pass
+
+	def win(self):
+		'''
+		here we will implement the winning condition
+		we will return the value True and the player who won. we want the game to stop
+		when win() == True.. and we will implement this in the step function
+		'''
+
+	def collision_check(self, piece):
+		x, y = piece.pos 
+		agents = list(self.grid[x][y])
+
+		#pop piece from agents
+		agents.remove(piece)
+
+		for agent in agents:
+			if agent.name == 'pit':
+				self.grid.remove_agent(piece)
+			elif agent.player != piece.player:
+				if agent.name == piece.name:
+					self.grid.remove_agent(piece)
+					self.grid.remove_agent(agent)
+				elif agent.name and piece.name in ['hero', 'wumpus']:
+					agent_to_remove = agent if agent.name == 'wumpus' else piece 
+					self.grid.remove_agent(agent_to_remove)
+				elif piece.name and agent.name in ['mage', 'hero']:
+					agent_to_remove = agent if agent.name == 'hero' else piece 
+					self.grid.remove_agent(agent_to_remove)
+				else:
+					agent_to_remove = agent if agent.name == 'mage' else piece 
+					self.grid.remove_agent(agent_to_remove)
+
 
 	
 	def step(self):
-		piece = self.get_position()
-		self.schedule.add(piece)
+		'''
+		Each time step is called, player enters move and their piece moves. Agent also moves its piece that was returned from
+		get_agent_piece_and_move(). This is essentially two turns of the game: player's turn and agent's turn. 
+
+		'''
+		adversary_piece = self.get_adversary_piece()
+		self.schedule.add(adversary_piece)
 		self.schedule.step()
-		self.schedule.remove(piece)
+		self.collision_check(adversary_piece)
+		self.schedule.remove(adversary_piece)
 
 
 if __name__ == '__main__':
-	model = GridModel(d, d)
+	model = Board(d, d)
 	for i in range(10):
 		model.step()
 
