@@ -52,7 +52,7 @@ def minimax(board, depth, alpha, beta, max_player):
 
 def simulate_move(temp_piece, move, temp_board):
 	temp_board.grid.move_agent(temp_piece, move)
-	temp_board.collision_check(temp_piece)
+	temp_board.collision_check(temp_piece, not_tree = False)
 
 
 

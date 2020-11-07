@@ -192,7 +192,6 @@ class Board(Model):
 		'''
 		_, _, piece, pos = minimax(self, depth, float('-inf'), float('inf'), True)
 
-		print('piece and pos is ', piece.name, pos)
 		return piece, pos
 
 	def winner(self):
@@ -203,10 +202,11 @@ class Board(Model):
 		'''
 		return self.adversary_pieces == [] or self.agent_pieces == []
 
-	def collision_check(self, piece):
+	def collision_check(self, piece, not_tree = True):
 		x, y = piece.pos 
 		agents = list(self.grid[x][y])
-
+		if not_tree:
+			print([agent.name for agent in agents])
 		#pop piece from agents
 		agents.remove(piece)
 
@@ -222,17 +222,19 @@ class Board(Model):
 					self._remove_piece_from_list(piece)
 					self._remove_piece_from_list(agent)
 
-				elif agent.name and piece.name in ['hero', 'wumpus']:
+				elif agent.name in ['hero', 'wumpus'] and piece.name in ['hero', 'wumpus']:
 					agent_to_remove = agent if agent.name == 'wumpus' else piece 
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
 
-				elif piece.name and agent.name in ['mage', 'hero']:
+				elif piece.name in ['mage', 'hero'] and agent.name in ['mage', 'hero']:
 					agent_to_remove = agent if agent.name == 'hero' else piece 
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
-				elif piece.name and agent.name in ['mage', 'wumpus']:
+				elif piece.name in ['mage', 'wumpus'] and agent.name in ['mage', 'wumpus']:
 					agent_to_remove = agent if agent.name == 'mage' else piece 
+					if not_tree:
+						print(agent_to_remove.name)
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
 
@@ -278,6 +280,7 @@ class Board(Model):
 		adversary_piece = self.get_adversary_piece()
 		self.schedule.add(adversary_piece)
 		self.schedule.step()
+		print('Adversary collision: ', end='')
 		self.collision_check(adversary_piece)
 		self.schedule.remove(adversary_piece)
 
@@ -285,6 +288,7 @@ class Board(Model):
 
 		agent_piece, agent_pos = self.get_agent_piece_and_move()
 		agent_piece.move(pos = agent_pos)
+		print('Agent Collision: ', end='')
 		self.collision_check(agent_piece)
 
 
