@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 
-def minimax(board, depth, max_player):
+def minimax(board, depth, alpha, beta, max_player):
 	if depth == 0  or board.winner():
 		return board.evaluate(), board, None, None
 
@@ -12,12 +12,17 @@ def minimax(board, depth, max_player):
 		b_move = None
 
 		for temp_board, piece, move in get_all_moves(board, 'agent'):
-			evaluation = minimax(temp_board, depth - 1, False)[0]
+			evaluation = minimax(temp_board, depth - 1, alpha, beta, False)[0]
+
 			maxEval = max(maxEval, evaluation)
+			alpha = max(evaluation, alpha)
 			if maxEval == evaluation:
 				best_board = temp_board
 				b_piece = piece 
 				b_move = move 
+
+			if beta <= alpha:
+				break
 
 		return maxEval, best_board, b_piece, b_move
 	
@@ -28,12 +33,16 @@ def minimax(board, depth, max_player):
 		b_move = None
 
 		for temp_board, piece, move in get_all_moves(board, 'adversary'):
-			evaluation = minimax(temp_board, depth - 1, True)[0]
+			evaluation = minimax(temp_board, depth - 1,alpha, beta, True)[0]
+
 			minEval = min(minEval, evaluation)
+			beta = min(beta, evaluation)
 			if minEval == evaluation:
 				best_board = temp_board
 				b_piece = piece 
 				b_move = move 
+			if beta <= alpha:
+				break
 
 		return minEval, best_board, b_piece, b_move
 

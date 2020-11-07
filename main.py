@@ -14,7 +14,8 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove 
 
 
 d = 6 #set this to a multiple of 3 to create a d x d board
-depth = 2
+depth = 3
+eval_weight = 0.5
 
 def is_valid_position(pos):
 	'''
@@ -189,7 +190,7 @@ class Board(Model):
 		here we will call minimax from minimax.py. This will return the agent piece that will move along with the coordinate
 		it will move to
 		'''
-		_, _, piece, pos = minimax(self, depth, True)
+		_, _, piece, pos = minimax(self, depth, float('-inf'), float('inf'), True)
 
 		print('piece and pos is ', piece.name, pos)
 		return piece, pos
@@ -243,9 +244,30 @@ class Board(Model):
 			self.adversary_pieces.remove(piece)
 
 
+	def distance_to_board(self):
+		#calculates distance from each piece to end of board and then adds all those up
+		total = 0
+		for piece in self.agent_pieces:
+			dist = piece.pos[1]
+			total += dist
+		return total
+
+
 	def evaluate(self):
 		#returns the score for the whole board
-		return len(self.agent_pieces) - len(self.adversary_pieces)
+		#perhaps this is too dumb. I will try a different evaluation method 
+		return len(self.agent_pieces) - len(self.adversary_pieces) + (eval_weight / self.distance_to_board())
+		#basically we want blacks pieces to go and try to capture white pieces
+		'''
+		what gives black an advantage:
+			if black has more of a given piece than I do
+				ex: black has 2 wumpus and I have 1
+			if I have no pieces that can kill one of blacks pieces
+				ex: i have no wumpuses. only my mages can self distruct and kill them along with myself
+			or if black has more pieces that can kill a given piece than I have of that given piece
+				ex: black has 2 wumpus I have 1 
+
+		'''
 
 	def step(self):
 		'''
