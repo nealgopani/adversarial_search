@@ -1,4 +1,7 @@
 from copy import deepcopy
+import h
+from queue import PriorityQueue
+import heapq
 
 
 def minimax(board, depth, alpha, beta, max_player):
@@ -10,13 +13,25 @@ def minimax(board, depth, alpha, beta, max_player):
 		best_board = None
 		b_piece = None
 		b_move = None
+		i = 1
+		pq = []
+		for item in get_all_moves(board, 'agent'):
+			temp_board = item[0]
+			heuristic = h.num_of_agent_pieces(temp_board)
+			a = (-heuristic, i, item)
+			heapq.heappush(pq, a)
+			i+=1
 
-		for temp_board, piece, move in get_all_moves(board, 'agent'):
-			evaluation = minimax(temp_board, depth - 1, alpha, beta, False)[0]
+		while pq != []:
+			temp_board, piece, move = heapq.heappop(pq)[2]
+			result = minimax(temp_board, depth - 1, alpha, beta, False)
+			evaluation = result[0]
 
 			maxEval = max(maxEval, evaluation)
-			alpha = max(evaluation, alpha)
-			if maxEval == evaluation:
+			print('maxEval: ', maxEval)
+			alpha = max(maxEval, alpha)
+
+			if maxEval == evaluation:				
 				best_board = temp_board
 				b_piece = piece 
 				b_move = move 
@@ -32,17 +47,33 @@ def minimax(board, depth, alpha, beta, max_player):
 		b_piece = None
 		b_move = None
 
-		for temp_board, piece, move in get_all_moves(board, 'adversary'):
-			evaluation = minimax(temp_board, depth - 1,alpha, beta, True)[0]
+		pq = []
+		i = 1
+		for item in get_all_moves(board, 'agent'):
+			temp_board = item[0]
+			heuristic = h.num_of_agent_pieces(temp_board)
+			a = (heuristic, i, item)
+			heapq.heappush(pq, a)
+			i+=1
+
+		while pq != []:
+			temp_board, piece, move = heapq.heappop(pq)[2]
+			result = minimax(temp_board, depth - 1,alpha, beta, True)
+			evaluation = result[0]
 
 			minEval = min(minEval, evaluation)
-			beta = min(beta, evaluation)
+			print('MinEval: ', minEval)
+			beta = min(beta, minEval)
+
 			if minEval == evaluation:
 				best_board = temp_board
 				b_piece = piece 
 				b_move = move 
+
 			if beta <= alpha:
 				break
+
+
 
 		return minEval, best_board, b_piece, b_move
 

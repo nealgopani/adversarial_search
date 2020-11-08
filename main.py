@@ -1,12 +1,8 @@
 from mesa import Agent, Model
 from mesa.time import BaseScheduler
-import matplotlib.pyplot as plt
 from mesa.space import MultiGrid
-from mesa.datacollection import DataCollector
-import numpy as np
 import random
 import math
-from collections import OrderedDict 
 import asyncio
 from minimax import minimax
 
@@ -14,8 +10,8 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove 
 
 
 d = 6 #set this to a multiple of 3 to create a d x d board
-depth = 3
-eval_weight = 0.5
+depth = 4
+eval_weight = 1
 
 def is_valid_position(pos):
 	'''
