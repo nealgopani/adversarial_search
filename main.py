@@ -2,7 +2,7 @@ from mesa import Agent, Model
 from mesa.time import BaseScheduler
 from mesa.space import MultiGrid
 import random
-import math
+import time
 import asyncio
 from minimax import minimax
 
@@ -10,7 +10,7 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove 
 
 
 d = 6 #set this to a multiple of 3 to create a d x d board
-depth = 3
+depth = 1
 weight = 1
 eval_weight = 1
 
@@ -24,7 +24,7 @@ def is_valid_position(pos):
 		return False
 
 	try:
-		x, y = int(coord[0]), int(coord[1])
+		x, y = int(coord[0]) - 1, int(coord[1]) - 1
 	except:
 
 		return False
@@ -60,9 +60,9 @@ class Piece(Agent):
 	def step(self):
 		self.move()
 
-	def get_valid_positions(self):
+	def get_valid_positions(self , r = 1):
 		#valid neighbors are anything in radius one that does not include one of your own pieces
-		neighbors = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = False, radius = 1)
+		neighbors = self.model.grid.get_neighborhood(self.pos, moore = True, include_center = False, radius = r)
 		neighbors_without_own = neighbors[:]
 
 
@@ -84,16 +84,20 @@ class Piece(Agent):
 			neighbors = self.get_valid_positions()
 			print('possible positions are: ')
 			for n in neighbors:
+				x, y = n 
+				x = x + 1
+				y = y + 1
+				n = (x,y)
 				print(n)
 
 			pos = ''
-			while not is_valid_position(pos) or tuple([int(i) for i in pos.split()]) not in neighbors:
+			while not is_valid_position(pos) or tuple([int(i) - 1 for i in pos.split()]) not in neighbors:
 				print(f'Move {self.name} to: ', end='')
 				pos = input()
 			
 			pos = pos.split()
 
-			x, y = int(pos[0]), int(pos[1])
+			x, y = int(pos[0]) - 1, int(pos[1]) - 1
 			self.model.grid.move_agent(self, (x, y))
 			print('Done')
 		else:
@@ -166,7 +170,7 @@ class Board(Model):
 				print('invalid argument')
 				continue
 
-			x, y = int(pos.split()[0]), int(pos.split()[1])
+			x, y = int(pos.split()[0]) - 1, int(pos.split()[1]) - 1
 
 			agents = list(self.grid[x][y])
 
@@ -190,7 +194,9 @@ class Board(Model):
 		here we will call minimax from minimax.py. This will return the agent piece that will move along with the coordinate
 		it will move to
 		'''
+		start = time.time()
 		_, _, piece, pos = minimax(self, depth, float('-inf'), float('inf'), True)
+		print('time passed:', time.time() - start)
 
 		return piece, pos
 
@@ -202,11 +208,9 @@ class Board(Model):
 		'''
 		return self.adversary_pieces == [] or self.agent_pieces == []
 
-	def collision_check(self, piece, not_tree = True):
+	def collision_check(self, piece):
 		x, y = piece.pos 
 		agents = list(self.grid[x][y])
-		if not_tree:
-			print([agent.name for agent in agents])
 		#pop piece from agents
 		agents.remove(piece)
 
@@ -233,8 +237,6 @@ class Board(Model):
 					self._remove_piece_from_list(agent_to_remove)
 				elif piece.name in ['mage', 'wumpus'] and agent.name in ['mage', 'wumpus']:
 					agent_to_remove = agent if agent.name == 'mage' else piece 
-					if not_tree:
-						print(agent_to_remove.name)
 					self.grid.remove_agent(agent_to_remove)
 					self._remove_piece_from_list(agent_to_remove)
 
@@ -247,7 +249,10 @@ class Board(Model):
 
 
 	def distance_to_board(self):
-		#calculates distance from each piece to end of board and then adds all those up
+		#calculates manhattan distance from each piece to all of other pieces then adds all those up
+		#also weights attacking pieces and vulnerable pieces so that agent runs towards
+		#pieces it can capture and runs away from pieces that can capture it
+
 		opposing_offense = {'wumpus': 'mage', 'mage': 'hero', 'hero': 'wumpus'}
 		opposing_defense = {j: i for i,j in opposing_offense.items()}
 		total = 0
@@ -268,7 +273,10 @@ class Board(Model):
 
 	def evaluate(self):
 		#returns the score for the whole board (made for agent's favor)
-		return len(self.agent_pieces) - len(self.adversary_pieces) + (eval_weight / self.distance_to_board())
+		try:
+			return len(self.agent_pieces) - len(self.adversary_pieces) + (eval_weight / self.distance_to_board())
+		except:
+			return len(self.agent_pieces) - len(self.adversary_pieces)
 
 	def step(self):
 		'''
@@ -280,7 +288,7 @@ class Board(Model):
 			adversary_piece = self.get_adversary_piece()
 			self.schedule.add(adversary_piece)
 			self.schedule.step()
-			print('Adversary collision: ', end='')
+
 			self.collision_check(adversary_piece)
 			self.schedule.remove(adversary_piece)
 
@@ -289,7 +297,6 @@ class Board(Model):
 			agent_piece, agent_pos = self.get_agent_piece_and_move()
 			if agent_piece != None:
 				agent_piece.move(pos = agent_pos)
-				print('Agent Collision: ', end='')
 				self.collision_check(agent_piece)
 		else:
 			print('Game Over')
