@@ -10,7 +10,8 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) #remove 
 
 
 d = 6 #set this to a multiple of 3 to create a d x d board
-depth = 4
+depth = 3
+weight = 1
 eval_weight = 1
 
 def is_valid_position(pos):
@@ -244,28 +245,27 @@ class Board(Model):
 
 	def distance_to_board(self):
 		#calculates distance from each piece to end of board and then adds all those up
+		opposing_offense = {'wumpus': 'mage', 'mage': 'hero', 'hero': 'wumpus'}
+		opposing_defense = {j: i for i,j in opposing_offense.items()}
 		total = 0
-		for piece in self.agent_pieces:
-			dist = piece.pos[1]
-			total += dist
-		return total
+		for ag_piece in self.agent_pieces:
+			for adv_piece in self.adversary_pieces:
+				weight = 1
+				x1, y1 = ag_piece.pos 
+				x2, y2 = adv_piece.pos 
+
+				if opposing_offense[ag_piece.name] == adv_piece.name:
+					weight = 2
+				elif opposing_defense[ag_piece.name] == adv_piece.name:
+					weight = -2 
+
+				total += weight * (abs(x1 - x2) + abs(y1 - y2) )
+		return total/len(self.agent_pieces)
 
 
 	def evaluate(self):
-		#returns the score for the whole board
-		#perhaps this is too dumb. I will try a different evaluation method 
+		#returns the score for the whole board (made for agent's favor)
 		return len(self.agent_pieces) - len(self.adversary_pieces) + (eval_weight / self.distance_to_board())
-		#basically we want blacks pieces to go and try to capture white pieces
-		'''
-		what gives black an advantage:
-			if black has more of a given piece than I do
-				ex: black has 2 wumpus and I have 1
-			if I have no pieces that can kill one of blacks pieces
-				ex: i have no wumpuses. only my mages can self distruct and kill them along with myself
-			or if black has more pieces that can kill a given piece than I have of that given piece
-				ex: black has 2 wumpus I have 1 
-
-		'''
 
 	def step(self):
 		'''
@@ -273,19 +273,23 @@ class Board(Model):
 		get_agent_piece_and_move(). This is essentially two turns of the game: player's turn and agent's turn. 
 
 		'''
-		adversary_piece = self.get_adversary_piece()
-		self.schedule.add(adversary_piece)
-		self.schedule.step()
-		print('Adversary collision: ', end='')
-		self.collision_check(adversary_piece)
-		self.schedule.remove(adversary_piece)
+		if not self.winner():
+			adversary_piece = self.get_adversary_piece()
+			self.schedule.add(adversary_piece)
+			self.schedule.step()
+			print('Adversary collision: ', end='')
+			self.collision_check(adversary_piece)
+			self.schedule.remove(adversary_piece)
 
 
 
-		agent_piece, agent_pos = self.get_agent_piece_and_move()
-		agent_piece.move(pos = agent_pos)
-		print('Agent Collision: ', end='')
-		self.collision_check(agent_piece)
+			agent_piece, agent_pos = self.get_agent_piece_and_move()
+			if agent_piece != None:
+				agent_piece.move(pos = agent_pos)
+				print('Agent Collision: ', end='')
+				self.collision_check(agent_piece)
+		else:
+			print('Game Over')
 
 
 
