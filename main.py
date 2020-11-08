@@ -49,7 +49,10 @@ class Piece(Agent):
 		super().__init__(name, model)
 		self.name = name
 		self.player = player #will be either adversary or agent
-		self.piece_to_image = {'wumpus': 'wumpus.jpg', 'hero': 'hero.png', 'mage': 'mage.png'}
+		if self.player == 'adversary':
+			self.piece_to_image = {'wumpus': 'wumpus.png', 'hero': 'hero.png', 'mage': 'mage.png'}
+		else:
+			self.piece_to_image = {'wumpus': 'wumpus_r.png', 'hero': 'hero_r.png', 'mage': 'mage_r.png'}
 		self.img = self.piece_to_image[name]
 
 

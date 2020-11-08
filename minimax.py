@@ -3,6 +3,7 @@ import h
 from queue import PriorityQueue
 import heapq
 
+h_func = h.manhattan_distance
 
 def minimax(board, depth, alpha, beta, max_player):
 	if depth == 0  or board.winner():
@@ -17,7 +18,7 @@ def minimax(board, depth, alpha, beta, max_player):
 		pq = []
 		for item in get_all_moves(board, 'agent'):
 			temp_board = item[0]
-			heuristic = h.num_of_agent_pieces(temp_board)
+			heuristic = h_func(temp_board)
 			a = (-heuristic, i, item)
 			heapq.heappush(pq, a)
 			i+=1
@@ -28,7 +29,6 @@ def minimax(board, depth, alpha, beta, max_player):
 			evaluation = result[0]
 
 			maxEval = max(maxEval, evaluation)
-			print('maxEval: ', maxEval)
 			alpha = max(maxEval, alpha)
 
 			if maxEval == evaluation:				
@@ -51,7 +51,7 @@ def minimax(board, depth, alpha, beta, max_player):
 		i = 1
 		for item in get_all_moves(board, 'agent'):
 			temp_board = item[0]
-			heuristic = h.num_of_agent_pieces(temp_board)
+			heuristic = h_func(temp_board)
 			a = (heuristic, i, item)
 			heapq.heappush(pq, a)
 			i+=1
@@ -62,7 +62,6 @@ def minimax(board, depth, alpha, beta, max_player):
 			evaluation = result[0]
 
 			minEval = min(minEval, evaluation)
-			print('MinEval: ', minEval)
 			beta = min(beta, minEval)
 
 			if minEval == evaluation:
@@ -76,8 +75,6 @@ def minimax(board, depth, alpha, beta, max_player):
 
 
 		return minEval, best_board, b_piece, b_move
-
-
 
 
 
